@@ -33,9 +33,9 @@ const startServer = async () => {
         .aggregate([
           {
             $project: {
-              _id: 1, // Include _id field
-              name: 1, // Include name field
-              address: 1, // Include address field
+              _id: 1,
+              name: 1,
+              address: 1,
             },
           },
         ])
@@ -67,9 +67,17 @@ const startServer = async () => {
         {
           $lookup: {
             from: "courses",
-            localField: "idString", // replace with the field name in the colleges collection
-            foreignField: "collegeId", // replace with the field name in the courses collection
-            as: "courseDetails", // the output array field
+            localField: "idString",
+            foreignField: "collegeId",
+            as: "courseDetails",
+          },
+        },
+        {
+          $lookup: {
+            from: "scholarships",
+            localField: "idString",
+            foreignField: "collegeId",
+            as: "scholarshipDetails",
           },
         },
       ];
