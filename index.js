@@ -50,6 +50,7 @@ const startServer = async () => {
       res.status(500).json({ error: "Failed to fetch data" });
     }
   });
+
   app.get("/colleges/:id", async (req, res) => {
     try {
       const collection = db.collection("colleges");
@@ -92,6 +93,7 @@ const startServer = async () => {
       res.status(500).json({ error: "Failed to fetch college" });
     }
   });
+
   app.post("/colleges/filters", async (req, res) => {
     const { country, program, type, courseName, collegeName } = req.body;
     try {
@@ -166,6 +168,7 @@ const startServer = async () => {
       res.status(500).json({ error: "Failed to fetch filtered data" });
     }
   });
+
   app.listen(process.env.PORT, () => {
     console.log(`Server is running on port ${process.env.PORT}`);
   });
