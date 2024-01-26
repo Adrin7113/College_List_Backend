@@ -101,13 +101,13 @@ const startServer = async () => {
           },
         },
         {
-          $addFields: {
-            numberOfCourses: { $size: "$courseDetails" },
+          $project: {
+            html: 0,
           },
         },
         {
-          $sort: {
-            numberOfCourses: -1,
+          $addFields: {
+            numberOfCourses: { $size: "$courseDetails" },
           },
         },
       ];
@@ -157,9 +157,12 @@ const startServer = async () => {
           _id: 1,
           name: 1,
           address: 1,
+          numberOfCourses: 1,
         },
       });
-      const data = await collection.aggregate(pipeline).toArray();
+      const data = await collection
+        .aggregate(pipeline, { allowDiskUse: true })
+        .toArray();
       res.json(data);
     } catch (err) {
       console.error("Failed to fetch filtered data:", err);
