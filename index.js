@@ -160,9 +160,10 @@ const startServer = async () => {
           numberOfCourses: 1,
         },
       });
-      const data = await collection
+      let data = await collection
         .aggregate(pipeline, { allowDiskUse: true })
         .toArray();
+      data = data.sort((a, b) => -(a.numberOfCourses - b.numberOfCourses));
       res.json(data);
     } catch (err) {
       console.error("Failed to fetch filtered data:", err);
