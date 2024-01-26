@@ -28,23 +28,11 @@ const startServer = async () => {
 
   app.get("/colleges", async (req, res) => {
     try {
-      const collection = db.collection("colleges");
-      const data = await collection
-        .aggregate([
-          {
-            $project: {
-              _id: 1,
-              name: 1,
-              address: 1,
-            },
-          },
-        ])
-        .toArray();
       const uniqueFilterOptions = await db
         .collection("uniqueFilterOptions")
         .find({})
         .toArray();
-      res.json({ data, uniqueFilterOptions });
+      res.json({ uniqueFilterOptions });
     } catch (err) {
       console.error("Failed to fetch data:", err);
       res.status(500).json({ error: "Failed to fetch data" });
@@ -110,6 +98,16 @@ const startServer = async () => {
             localField: "idString",
             foreignField: "collegeId",
             as: "courseDetails",
+          },
+        },
+        {
+          $addFields: {
+            numberOfCourses: { $size: "$courseDetails" },
+          },
+        },
+        {
+          $sort: {
+            numberOfCourses: -1,
           },
         },
       ];
