@@ -167,6 +167,62 @@ const startServer = async () => {
     }
   });
 
+  app.get("/courses/:id", async (req, res) => {
+    try {
+      const collection = db.collection("courses");
+      const pipeline = [
+        {
+          $match: {
+            _id: new ObjectId(req.params.id),
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            html: 1,
+          },
+        },
+      ];
+      const course = await collection.aggregate(pipeline).toArray();
+      if (course.length > 0) {
+        res.json(course[0]);
+      } else {
+        res.status(404).json({ error: "Course not found" });
+      }
+    } catch (err) {
+      console.error("Failed to fetch course:", err);
+      res.status(500).json({ error: "Failed to fetch course" });
+    }
+  });
+
+  app.get("/scholarships/:id", async (req, res) => {
+    try {
+      const collection = db.collection("scholarships");
+      const pipeline = [
+        {
+          $match: {
+            _id: new ObjectId(req.params.id),
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            html: 1,
+          },
+        },
+      ];
+      const scholarship = await collection.aggregate(pipeline).toArray();
+      if (scholarship.length > 0) {
+        res.json(scholarship[0]);
+      } else {
+        res.status(404).json({ error: "Scholarship not found" });
+      }
+    } catch (err) {
+      console.error("Failed to fetch scholarship:", err);
+      res.status(500).json({ error: "Failed to fetch scholarship" });
+    }
+  });
+
   app.listen(process.env.PORT, () => {
     console.log(`Server is running on port ${process.env.PORT}`);
   });
