@@ -26,6 +26,27 @@ const startServer = async () => {
   app.use(express.json());
   app.use(cors());
 
+  async function getCollegeCountByCountry(country) {
+    try {
+      const collection = db.collection("colleges");
+      const pipeline = [
+        {
+          $match: {
+            country: country,
+          },
+        },
+        {
+          $count: "count",
+        },
+      ];
+      const result = await collection.aggregate(pipeline).toArray();
+      return result[0].count;
+    } catch (err) {
+      console.error("Failed to fetch college count:", err);
+      throw new Error("Failed to fetch college count");
+    }
+  }
+
   app.get("/colleges", async (req, res) => {
     try {
       const uniqueFilterOptions = await db
@@ -84,9 +105,40 @@ const startServer = async () => {
 
   app.post("/colleges/filters", async (req, res) => {
     const { country, program, type, courseName, collegeName } = req.body;
+    const page = req.query.page;
     try {
       const collection = db.collection("colleges");
-      const pipeline = [
+      const noOfColleges = await getCollegeCountByCountry(country);
+      const pipeline = [];
+
+      if (country !== "") {
+        pipeline.push({ $match: { country: country } });
+      }
+      if (
+        program === "" &&
+        type === "" &&
+        courseName === "" &&
+        collegeName === ""
+      ) {
+        pipeline.push(
+          {
+            $skip: (page - 1) * 20,
+          },
+          {
+            $limit: 20,
+          }
+        );
+      } else {
+        pipeline.push(
+          {
+            $skip: (page - 1) * 50,
+          },
+          {
+            $limit: 50,
+          }
+        );
+      }
+      pipeline.push(
         {
           $addFields: {
             idString: { $toString: "$_id" },
@@ -109,13 +161,8 @@ const startServer = async () => {
           $addFields: {
             numberOfCourses: { $size: "$courseDetails" },
           },
-        },
-      ];
-
-      if (country !== "") {
-        pipeline.push({ $match: { country: country } });
-      }
-
+        }
+      );
       if (program !== "") {
         pipeline.push({
           $match: {
@@ -164,7 +211,7 @@ const startServer = async () => {
         .aggregate(pipeline, { allowDiskUse: true })
         .toArray();
       data = data.sort((a, b) => -(a.numberOfCourses - b.numberOfCourses));
-      res.json(data);
+      res.json({ data, noOfColleges });
     } catch (err) {
       console.error("Failed to fetch filtered data:", err);
       res.status(500).json({ error: "Failed to fetch filtered data" });
