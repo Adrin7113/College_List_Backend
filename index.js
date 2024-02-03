@@ -77,16 +77,42 @@ const startServer = async () => {
         {
           $lookup: {
             from: "courses",
-            localField: "idString",
-            foreignField: "collegeId",
+            let: { idString: "$idString" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $eq: ["$collegeId", "$$idString"],
+                  },
+                },
+              },
+              {
+                $project: {
+                  html: 0,
+                },
+              },
+            ],
             as: "courseDetails",
           },
         },
         {
           $lookup: {
             from: "scholarships",
-            localField: "idString",
-            foreignField: "collegeId",
+            let: { idString: "$idString" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $eq: ["$collegeId", "$$idString"],
+                  },
+                },
+              },
+              {
+                $project: {
+                  html: 0,
+                },
+              },
+            ],
             as: "scholarshipDetails",
           },
         },
