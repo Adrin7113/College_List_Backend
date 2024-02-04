@@ -118,8 +118,12 @@ const startServer = async () => {
         },
       ];
       const college = await collection.aggregate(pipeline).toArray();
+      const currencyUrl = `https://api.freecurrencyapi.com/v1/latest?apikey=${process.env.CURRENCY_API_KEY}&currencies=&base_currency=INR`;
+      let response = await fetch(currencyUrl);
+      response = await response.json();
+      currencyConversion = response.data;
       if (college.length > 0) {
-        res.json(college[0]);
+        res.json({ college: college[0], currencyConversion });
       } else {
         res.status(404).json({ error: "College not found" });
       }
