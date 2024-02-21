@@ -5,10 +5,7 @@ require("dotenv").config();
 const { ObjectId } = require("mongodb");
 
 const connectToDb = async () => {
-  const client = new MongoClient(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  });
+  const client = new MongoClient(process.env.MONGO_URI);
 
   try {
     await client.connect();
@@ -138,37 +135,13 @@ const startServer = async () => {
     const page = req.query.page;
     try {
       const collection = db.collection("colleges");
-      const noOfColleges = await getCollegeCountByCountry(country);
-      const pipeline = [];
 
-      if (country !== "") {
-        pipeline.push({ $match: { country: country } });
-      }
-      if (
-        program === "" &&
-        type === "" &&
-        courseName === "" &&
-        collegeName === ""
-      ) {
-        pipeline.push(
-          {
-            $skip: (page - 1) * 20,
+      let pipeline = [
+        {
+          $match: {
+            country: country,
           },
-          {
-            $limit: 20,
-          }
-        );
-      } else {
-        pipeline.push(
-          {
-            $skip: (page - 1) * 50,
-          },
-          {
-            $limit: 50,
-          }
-        );
-      }
-      pipeline.push(
+        },
         {
           $addFields: {
             idString: { $toString: "$_id" },
@@ -183,65 +156,140 @@ const startServer = async () => {
           },
         },
         {
+          $addFields: {
+            numberOfCourses: { $size: "$courseDetails" },
+          },
+        },
+        {
           $project: {
             html: 0,
           },
         },
-        {
-          $addFields: {
-            numberOfCourses: { $size: "$courseDetails" },
-          },
-        }
-      );
+      ];
+
+      let conditionArray = [];
+
       if (program !== "") {
-        pipeline.push({
-          $match: {
-            courseDetails: {
-              $elemMatch: {
-                program: program,
-              },
-            },
-          },
-        });
+        conditionArray.push({ $eq: ["$$course.program", program] });
       }
 
       if (type !== "") {
-        pipeline.push({
-          $match: {
-            courseDetails: { $elemMatch: { courseType: type } },
+        conditionArray.push({ $eq: ["$$course.courseType", type] });
+      }
+
+      if (courseName !== "") {
+        conditionArray.push({
+          $regexMatch: {
+            input: "$$course.courseName",
+            regex: courseName,
+            options: "i",
           },
         });
       }
 
-      if (courseName !== "") {
-        pipeline.push({
-          $match: {
-            courseDetails: {
-              $elemMatch: {
-                courseName: { $regex: courseName, $options: "i" },
-              },
+      pipeline.push({
+        $addFields: {
+          courseDetails: {
+            $filter: {
+              input: "$courseDetails",
+              as: "course",
+              cond: { $and: conditionArray },
             },
           },
-        });
-      }
+        },
+      });
+
+      // if (program !== "") {
+      //   pipeline.push({
+      //     $match: {
+      //       courseDetails: {
+      //         $elemMatch: {
+      //           program: program,
+      //         },
+      //       },
+      //     },
+      //   });
+      // }
+
+      // if (type !== "") {
+      //   pipeline.push({
+      //     $match: {
+      //       courseDetails: { $elemMatch: { courseType: type } },
+      //     },
+      //   });
+      // }
+
+      // if (courseName !== "") {
+      //   pipeline.push({
+      //     $match: {
+      //       courseDetails: {
+      //         $elemMatch: {
+      //           courseName: { $regex: courseName, $options: "i" },
+      //         },
+      //       },
+      //     },
+      //   });
+      // }
+
       if (collegeName !== "") {
         pipeline.push({
           $match: { name: { $regex: collegeName, $options: "i" } },
         });
       }
+
+      pipeline.push({
+        $unwind: {
+          path: "$courseDetails",
+          preserveNullAndEmptyArrays: false,
+        },
+      });
+
       pipeline.push({
         $project: {
           _id: 1,
-          name: 1,
-          address: 1,
+          // name: 1,
+          // address: 1,
           numberOfCourses: 1,
+          courseName: "$courseDetails.courseName",
         },
       });
+
+      let countPipeline = [...pipeline];
+
+      countPipeline.push({
+        $count: "totalColleges",
+      });
+
+      pipeline.push({
+        $skip:
+          program === "" &&
+          type === "" &&
+          courseName === "" &&
+          collegeName === ""
+            ? (page - 1) * 20
+            : (page - 1) * 50,
+      });
+
+      pipeline.push({
+        $limit:
+          program === "" &&
+          type === "" &&
+          courseName === "" &&
+          collegeName === ""
+            ? 20
+            : 50,
+      });
+      let totalCount = await collection.aggregate(countPipeline).toArray();
+      if (totalCount.length === 0) {
+        totalCount = 0;
+      } else {
+        totalCount = totalCount[0].totalColleges;
+      }
       let data = await collection
         .aggregate(pipeline, { allowDiskUse: true })
         .toArray();
       data = data.sort((a, b) => -(a.numberOfCourses - b.numberOfCourses));
-      res.json({ data, noOfColleges });
+      res.json({ data, totalCount });
     } catch (err) {
       console.error("Failed to fetch filtered data:", err);
       res.status(500).json({ error: "Failed to fetch filtered data" });
