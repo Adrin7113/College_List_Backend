@@ -199,38 +199,6 @@ const startServer = async () => {
         },
       });
 
-      // if (program !== "") {
-      //   pipeline.push({
-      //     $match: {
-      //       courseDetails: {
-      //         $elemMatch: {
-      //           program: program,
-      //         },
-      //       },
-      //     },
-      //   });
-      // }
-
-      // if (type !== "") {
-      //   pipeline.push({
-      //     $match: {
-      //       courseDetails: { $elemMatch: { courseType: type } },
-      //     },
-      //   });
-      // }
-
-      // if (courseName !== "") {
-      //   pipeline.push({
-      //     $match: {
-      //       courseDetails: {
-      //         $elemMatch: {
-      //           courseName: { $regex: courseName, $options: "i" },
-      //         },
-      //       },
-      //     },
-      //   });
-      // }
-
       if (collegeName !== "") {
         pipeline.push({
           $match: { name: { $regex: collegeName, $options: "i" } },
@@ -247,8 +215,8 @@ const startServer = async () => {
       pipeline.push({
         $project: {
           _id: 1,
-          // name: 1,
-          // address: 1,
+          name: 1,
+          address: 1,
           numberOfCourses: 1,
           courseName: "$courseDetails.courseName",
         },
