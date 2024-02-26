@@ -144,6 +144,18 @@ const startServer = async () => {
         },
         {
           $addFields: {
+            sortRank: {
+              $cond: [{ $eq: ["$rank", -1] }, Infinity, "$rank"],
+            },
+          },
+        },
+        {
+          $sort: {
+            sortRank: 1,
+          },
+        },
+        {
+          $addFields: {
             idString: { $toString: "$_id" },
           },
         },
@@ -218,6 +230,7 @@ const startServer = async () => {
           name: 1,
           address: 1,
           numberOfCourses: 1,
+          rank: 1,
           courseName: "$courseDetails.courseName",
         },
       });
@@ -256,7 +269,6 @@ const startServer = async () => {
       let data = await collection
         .aggregate(pipeline, { allowDiskUse: true })
         .toArray();
-      data = data.sort((a, b) => -(a.numberOfCourses - b.numberOfCourses));
       res.json({ data, totalCount });
     } catch (err) {
       console.error("Failed to fetch filtered data:", err);
